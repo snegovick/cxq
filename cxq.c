@@ -1,13 +1,4 @@
-/** 
- * section: 	XPath
- * synopsis: 	Evaluate XPath expression and prints result node set.
- * purpose: 	Shows how to evaluate XPath expression and register 
- *          	known namespaces in XPath context.
- * usage:	xpath1 <xml-file> <xpath-expr> [<known-ns-list>]
- * test:	xpath1 test3.xml '//child2' > xpath1.tmp && diff xpath1.tmp $(srcdir)/xpath1.res
- * author: 	Aleksey Sanin
- * copy: 	see Copyright for the status of this software.
- */
+// Based on xpath1 sample from libxml2 repository
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -48,12 +39,6 @@ main(int argc, char **argv) {
   return 0;
 }
 
-/**
- * usage:
- * @name:		the program name.
- *
- * Prints usage information.
- */
 static void 
 usage(const char *name) {
   assert(name);
@@ -63,17 +48,6 @@ usage(const char *name) {
   fprintf(stderr, "in \"<prefix1>=<href1> <prefix2>=href2> ...\" format\n");
 }
 
-/**
- * execute_xpath_expression:
- * @filename:		the input XML filename.
- * @xpathExpr:		the xpath expression for evaluation.
- * @nsList:		the optional list of known namespaces in 
- *			"<prefix1>=<href1> <prefix2>=href2> ..." format.
- *
- * Parses input XML file, evaluates XPath expression and prints results.
- *
- * Returns 0 on success and a negative value otherwise.
- */
 int 
 execute_xpath_expression(const char* filename, const xmlChar* xpathExpr, const xmlChar* nsList) {
   xmlDocPtr doc;
@@ -126,16 +100,6 @@ execute_xpath_expression(const char* filename, const xmlChar* xpathExpr, const x
   return(0);
 }
 
-/**
- * register_namespaces:
- * @xpathCtx:		the pointer to an XPath context.
- * @nsList:		the list of known namespaces in 
- *			"<prefix1>=<href1> <prefix2>=href2> ..." format.
- *
- * Registers namespaces from @nsList in @xpathCtx.
- *
- * Returns 0 on success and a negative value otherwise.
- */
 int 
 register_namespaces(xmlXPathContextPtr xpathCtx, const xmlChar* nsList) {
   xmlChar* nsListDup;
@@ -187,13 +151,6 @@ register_namespaces(xmlXPathContextPtr xpathCtx, const xmlChar* nsList) {
   return(0);
 }
 
-/**
- * print_xpath_nodes:
- * @nodes:		the nodes set.
- * @output:		the output file handle.
- *
- * Prints the @nodes content to @output.
- */
 void
 print_xpath_nodes(xmlNodeSetPtr nodes, FILE* output) {
   xmlNodePtr cur;
@@ -242,13 +199,10 @@ print_xpath_nodes(xmlNodeSetPtr nodes, FILE* output) {
 	    }
     } else {
 	    cur = nodes->nodeTab[i];    
-	    //fprintf(output, "= node \"%s\": type %d\n", cur->name, cur->type);
       xmlAttrPtr attr = cur->properties;
-      //while (attr != NULL) {
-        xmlChar* value = xmlNodeListGetString(cur->doc, cur->children, 1);
-        fprintf(output, "%s", value);
-        xmlFree(value);
-        //}
+      xmlChar* value = xmlNodeListGetString(cur->doc, cur->children, 1);
+      fprintf(output, "%s\n", value);
+      xmlFree(value);
     }
   }
 }
