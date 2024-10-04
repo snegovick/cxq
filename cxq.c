@@ -199,7 +199,6 @@ print_xpath_nodes(xmlNodeSetPtr nodes, FILE* output) {
 	    }
     } else {
 	    cur = nodes->nodeTab[i];    
-      xmlAttrPtr attr = cur->properties;
       xmlChar* value = xmlNodeListGetString(cur->doc, cur->children, 1);
       fprintf(output, "%s\n", value);
       xmlFree(value);
