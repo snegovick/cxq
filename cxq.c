@@ -234,12 +234,18 @@ print_xpath_nodes(xmlNodeSetPtr nodes, FILE* output) {
         fprintf(output, "= element node \"%s:%s\"\n", 
                 cur->ns->href, cur->name);
 	    } else {
-        char *outstr = malloc(4096);
-        memset(outstr, 0, 4096);
+        size_t alloc_size = 4096;
+        char *outstr = realloc(NULL, alloc_size);
         int offt = sprintf(outstr, "<%s", cur->name);
         xmlAttrPtr attr = cur->properties;
         while (attr != NULL) {
           xmlChar* value = xmlNodeListGetString(cur->doc, attr->children, 1);
+          // space + 2*quotes + '=' + '/' + '>' + \0 -> 7
+          size_t combined_len = xmlStrlen(attr->name) + xmlStrlen(value) + 7;
+          if (offt + combined_len > alloc_size) {
+            outstr = realloc(outstr, alloc_size + combined_len);
+            alloc_size += combined_len;
+          }
           offt += sprintf(outstr+offt, " %s=\"%s\"", attr->name, value);
           xmlFree(value);
           attr = attr->next;
