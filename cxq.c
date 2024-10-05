@@ -1,6 +1,9 @@
 // Based on xpath1 sample from libxml2 repository
 #include <stdlib.h>
 #include <stdio.h>
+#include <ctype.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <assert.h>
 
@@ -11,28 +14,66 @@
 
 #if defined(LIBXML_XPATH_ENABLED) && defined(LIBXML_SAX1_ENABLED)
 
+#define STRING_BUFFER_SIZE 256
 
-static void usage(const char *name);
-int  execute_xpath_expression(const char* filename, const xmlChar* xpathExpr, const xmlChar* nsList);
-int  register_namespaces(xmlXPathContextPtr xpathCtx, const xmlChar* nsList);
+static void usage(void);
+int execute_xpath_expression(const char* filename, const char *inputBuffer, size_t inputBufferSize, const xmlChar* xpathExpr, const xmlChar* nsList);
+int register_namespaces(xmlXPathContextPtr xpathCtx, const xmlChar* nsList);
 void print_xpath_nodes(xmlNodeSetPtr nodes, FILE* output);
 
 int 
 main(int argc, char **argv) {
   /* Parse command line and process file */
-  if((argc < 3) || (argc > 4)) {
-    fprintf(stderr, "Error: wrong number of arguments.\n");
-    usage(argv[0]);
-    return(-1);
-  } 
+  char *filePath = NULL;
+  char *xpathExpression = NULL;
+  char *nsList = NULL;
+  char *inputBuffer = NULL;
+  size_t inputBufferSize = 0;
+  char stringBuffer[STRING_BUFFER_SIZE] = {0};
+  int c;
+
+  opterr = 0;
+
+  while ((c = getopt (argc, argv, "hf:x:n:")) != -1) {
+    switch (c) {
+    case 'h':
+      usage();
+      return 0;
+    case 'f':
+      filePath = optarg;
+      break;
+    case 'x':
+      xpathExpression = optarg;
+      break;
+    case 'n':
+      nsList = optarg;
+      break;
+    default:
+      abort();
+    }
+  }
+
+  if (xpathExpression == NULL) {
+    fprintf(stderr, "XPath expression is required\n");
+    return -1;
+  }
+
+  if (filePath == NULL) {
+    while(fgets(stringBuffer, STRING_BUFFER_SIZE, stdin) != NULL) {
+      size_t sbSize = strlen(stringBuffer);
+      inputBuffer = realloc(inputBuffer, inputBufferSize + sbSize);
+      memcpy(inputBuffer + inputBufferSize, stringBuffer, sbSize);
+      inputBufferSize += sbSize;
+    }
+  }
     
   /* Init libxml */     
   xmlInitParser();
   LIBXML_TEST_VERSION
 
     /* Do the main job */
-    if(execute_xpath_expression(argv[1], BAD_CAST argv[2], (argc > 3) ? BAD_CAST argv[3] : NULL) < 0) {
-      usage(argv[0]);
+    if(execute_xpath_expression(filePath, inputBuffer, inputBufferSize, BAD_CAST xpathExpression, (nsList != NULL) ? BAD_CAST nsList : NULL) < 0) {
+      usage();
       return(-1);
     }
 
@@ -40,28 +81,40 @@ main(int argc, char **argv) {
 }
 
 static void 
-usage(const char *name) {
-  assert(name);
-    
-  fprintf(stderr, "Usage: %s <xml-file> <xpath-expr> [<known-ns-list>]\n", name);
-  fprintf(stderr, "where <known-ns-list> is a list of known namespaces\n");
-  fprintf(stderr, "in \"<prefix1>=<href1> <prefix2>=href2> ...\" format\n");
+usage(void) {
+  fprintf(stderr, "cxq - commandline tool for running XPath queries on XML data\n\n");
+  fprintf(stderr, "Usage: cxq -f <xml file path> -x <xpath expression>\n\n");
+  fprintf(stderr, "If xml file path arg (-f) is missing, then XML data is expected on stdin.\n\n");
+  fprintf(stderr, "Example:\n\n");
+  fprintf(stderr, "$ echo '<apn user=\"test\"/>' | ./cxq -x /apn/@user\n");
+  fprintf(stderr, "test\n\n");
+  fprintf(stderr, "Command options:\n");
+  fprintf(stderr, "\t-h\t\t\tShow this help\n");
+  fprintf(stderr, "\t-f\t\t\tXML file path\n");
+  fprintf(stderr, "\t-x\t\t\tXPath expression\n");
 }
 
-int 
-execute_xpath_expression(const char* filename, const xmlChar* xpathExpr, const xmlChar* nsList) {
+int
+execute_xpath_expression(const char* filename, const char *inputBuffer, size_t inputBufferSize, const xmlChar* xpathExpr, const xmlChar* nsList) {
   xmlDocPtr doc;
   xmlXPathContextPtr xpathCtx; 
   xmlXPathObjectPtr xpathObj; 
-    
-  assert(filename);
+
   assert(xpathExpr);
 
   /* Load XML document */
-  doc = xmlParseFile(filename);
-  if (doc == NULL) {
-    fprintf(stderr, "Error: unable to parse file \"%s\"\n", filename);
-    return(-1);
+  if (filename != NULL) {
+    doc = xmlParseFile(filename);
+    if (doc == NULL) {
+      fprintf(stderr, "Error: unable to parse file \"%s\"\n", filename);
+      return(-1);
+    }
+  } else if (inputBuffer != NULL) {
+    doc = xmlReadMemory(inputBuffer, inputBufferSize, "stdin", NULL, 0);
+    if (doc == NULL) {
+      fprintf(stderr, "Error: unable to parse input\n");
+      return(-1);
+    }
   }
 
   /* Create xpath evaluation context */
@@ -159,8 +212,7 @@ print_xpath_nodes(xmlNodeSetPtr nodes, FILE* output) {
     
   assert(output);
   size = (nodes) ? nodes->nodeNr : 0;
-    
-  //fprintf(output, "Result (%d nodes):\n", size);
+
   for(i = 0; i < size; ++i) {
     assert(nodes->nodeTab[i]);
 	
@@ -182,7 +234,6 @@ print_xpath_nodes(xmlNodeSetPtr nodes, FILE* output) {
         fprintf(output, "= element node \"%s:%s\"\n", 
                 cur->ns->href, cur->name);
 	    } else {
-        //fprintf(output, "= element node \"%s\"\n", cur->name);
         char *outstr = malloc(4096);
         memset(outstr, 0, 4096);
         int offt = sprintf(outstr, "<%s", cur->name);
