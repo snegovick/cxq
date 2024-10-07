@@ -11,7 +11,6 @@
 #include <libxml/parser.h>
 #include <libxml/xpath.h>
 #include <libxml/xpathInternals.h>
-#include <libxml/xmlwriter.h>
 
 #define STRING_BUFFER_SIZE 256
 
