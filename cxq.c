@@ -49,7 +49,8 @@ main(int argc, char **argv) {
       nsList = optarg;
       break;
     default:
-      abort();
+      usage();
+      return -1;
     }
   }
 
