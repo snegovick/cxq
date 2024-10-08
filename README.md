@@ -21,5 +21,5 @@ cxq -f apns-full-conf.xml -x /apns/apn[@mcc="260"][@mnc="06"]
 Print values of attribute "user" from apns db:
 
 ```
-cxq -f apns-full-conf.xml -x /apns/apn[@mcc="260"][@mnc="06"]/@user
+cxq -f apns-full-conf.xml -x /apns/apn[@mcc="260"][@mnc="06"]/@mcc
 ```

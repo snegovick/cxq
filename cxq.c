@@ -15,7 +15,7 @@
 #define STRING_BUFFER_SIZE 256
 
 
-static void 
+static void
 usage(void) {
   fprintf(stderr, "cxq - commandline tool for running XPath queries on XML data\n\n");
   fprintf(stderr, "Usage: cxq -f <xml file path> -x <xpath expression>\n\n");
@@ -71,24 +71,49 @@ pretty_print_xml(xmlDocPtr doc, FILE* output) {
   return 0;
 }
 
+int
+pretty_print_xml_node(xmlNodePtr cur, FILE *output) {
+  size_t alloc_size = 4096;
+  char *outstr = realloc(NULL, alloc_size);
+  int offt = sprintf(outstr, "<%s", cur->name);
+  xmlAttrPtr attr = cur->properties;
+  while (attr != NULL) {
+    xmlChar* value = xmlNodeListGetString(cur->doc, attr->children, 1);
+    // space + 2*quotes + '=' + '/' + '>' + \0 -> 7
+    size_t combined_len = xmlStrlen(attr->name) + xmlStrlen(value) + 7;
+    if (offt + combined_len > alloc_size) {
+      outstr = realloc(outstr, alloc_size + combined_len);
+      alloc_size += combined_len;
+    }
+    offt += sprintf(outstr+offt, " %s=\"%s\"", attr->name, value);
+    xmlFree(value);
+    attr = attr->next;
+  }
+  sprintf(outstr+offt, "/>");
+  fprintf(output, "%s\n", outstr);
+  free(outstr);
+
+  return 0;
+}
+
 #if defined(LIBXML_XPATH_ENABLED) && defined(LIBXML_SAX1_ENABLED)
-int 
+int
 register_namespaces(xmlXPathContextPtr xpathCtx, const xmlChar* nsList) {
   xmlChar* nsListDup;
   xmlChar* prefix;
   xmlChar* href;
   xmlChar* next;
-    
+
   assert(xpathCtx);
   assert(nsList);
 
   nsListDup = xmlStrdup(nsList);
   if (nsListDup == NULL) {
     fprintf(stderr, "Error: unable to strdup namespaces list\n");
-    return -1;	
+    return -1;
   }
-    
-  next = nsListDup; 
+
+  next = nsListDup;
   while(next != NULL) {
     /* skip spaces */
     while((*next) == ' ') next++;
@@ -98,27 +123,27 @@ register_namespaces(xmlXPathContextPtr xpathCtx, const xmlChar* nsList) {
     prefix = next;
     next = (xmlChar*)xmlStrchr(next, '=');
     if (next == NULL) {
-	    fprintf(stderr,"Error: invalid namespaces list format\n");
-	    xmlFree(nsListDup);
-	    return -1;	
+      fprintf(stderr,"Error: invalid namespaces list format\n");
+      xmlFree(nsListDup);
+      return -1;
     }
-    *(next++) = '\0';	
-	
+    *(next++) = '\0';
+
     /* find href */
     href = next;
     next = (xmlChar*)xmlStrchr(next, ' ');
     if (next != NULL) {
-	    *(next++) = '\0';	
+      *(next++) = '\0';
     }
 
     /* do register namespace */
     if (xmlXPathRegisterNs(xpathCtx, prefix, href) != 0) {
-	    fprintf(stderr,"Error: unable to register NS with prefix=\"%s\" and href=\"%s\"\n", prefix, href);
-	    xmlFree(nsListDup);
-	    return -1;	
+      fprintf(stderr,"Error: unable to register NS with prefix=\"%s\" and href=\"%s\"\n", prefix, href);
+      xmlFree(nsListDup);
+      return -1;
     }
   }
-    
+
   xmlFree(nsListDup);
   return(0);
 }
@@ -128,53 +153,35 @@ print_xpath_nodes(xmlNodeSetPtr nodes, FILE* output) {
   xmlNodePtr cur;
   int size;
   int i;
-    
+
   assert(output);
   size = (nodes) ? nodes->nodeNr : 0;
 
   for(i = 0; i < size; ++i) {
     assert(nodes->nodeTab[i]);
-	
+
     if (nodes->nodeTab[i]->type == XML_NAMESPACE_DECL) {
-	    xmlNsPtr ns;
-	    
-	    ns = (xmlNsPtr)nodes->nodeTab[i];
-	    cur = (xmlNodePtr)ns->next;
-	    if (cur->ns) { 
-        fprintf(output, "= namespace \"%s\"=\"%s\" for node %s:%s\n", 
+      xmlNsPtr ns;
+
+      ns = (xmlNsPtr)nodes->nodeTab[i];
+      cur = (xmlNodePtr)ns->next;
+      if (cur->ns) {
+        fprintf(output, "= namespace \"%s\"=\"%s\" for node %s:%s\n",
                 ns->prefix, ns->href, cur->ns->href, cur->name);
-	    } else {
-        fprintf(output, "= namespace \"%s\"=\"%s\" for node %s\n", 
+      } else {
+        fprintf(output, "= namespace \"%s\"=\"%s\" for node %s\n",
                 ns->prefix, ns->href, cur->name);
-	    }
+      }
     } else if (nodes->nodeTab[i]->type == XML_ELEMENT_NODE) {
-	    cur = nodes->nodeTab[i];   	    
-	    if (cur->ns) { 
-        fprintf(output, "= element node \"%s:%s\"\n", 
+      cur = nodes->nodeTab[i];
+      if (cur->ns) {
+        fprintf(output, "= element node \"%s:%s\"\n",
                 cur->ns->href, cur->name);
-	    } else {
-        size_t alloc_size = 4096;
-        char *outstr = realloc(NULL, alloc_size);
-        int offt = sprintf(outstr, "<%s", cur->name);
-        xmlAttrPtr attr = cur->properties;
-        while (attr != NULL) {
-          xmlChar* value = xmlNodeListGetString(cur->doc, attr->children, 1);
-          // space + 2*quotes + '=' + '/' + '>' + \0 -> 7
-          size_t combined_len = xmlStrlen(attr->name) + xmlStrlen(value) + 7;
-          if (offt + combined_len > alloc_size) {
-            outstr = realloc(outstr, alloc_size + combined_len);
-            alloc_size += combined_len;
-          }
-          offt += sprintf(outstr+offt, " %s=\"%s\"", attr->name, value);
-          xmlFree(value);
-          attr = attr->next;
-        }
-        sprintf(outstr+offt, "/>");
-        fprintf(output, "%s\n", outstr);
-        free(outstr);
-	    }
+      } else {
+        pretty_print_xml_node(cur, stdout);
+      }
     } else {
-	    cur = nodes->nodeTab[i];    
+      cur = nodes->nodeTab[i];
       xmlChar* value = xmlNodeListGetString(cur->doc, cur->children, 1);
       fprintf(output, "%s\n", value);
       xmlFree(value);
@@ -184,8 +191,8 @@ print_xpath_nodes(xmlNodeSetPtr nodes, FILE* output) {
 
 int
 execute_xpath_expression(xmlDocPtr doc, const xmlChar* xpathExpr, const xmlChar* nsList) {
-  xmlXPathContextPtr xpathCtx; 
-  xmlXPathObjectPtr xpathObj; 
+  xmlXPathContextPtr xpathCtx;
+  xmlXPathObjectPtr xpathObj;
 
   assert(xpathExpr);
 
@@ -193,15 +200,15 @@ execute_xpath_expression(xmlDocPtr doc, const xmlChar* xpathExpr, const xmlChar*
   xpathCtx = xmlXPathNewContext(doc);
   if (xpathCtx == NULL) {
     fprintf(stderr, "Error: unable to create new XPath context\n");
-    xmlFreeDoc(doc); 
+    xmlFreeDoc(doc);
     return -1;
   }
-    
+
   /* Register namespaces from list (if any) */
   if ((nsList != NULL) && (register_namespaces(xpathCtx, nsList) < 0)) {
     fprintf(stderr, "Error: failed to register namespaces list \"%s\"\n", nsList);
-    xmlXPathFreeContext(xpathCtx); 
-    xmlFreeDoc(doc); 
+    xmlXPathFreeContext(xpathCtx);
+    xmlFreeDoc(doc);
     return -1;
   }
 
@@ -209,8 +216,8 @@ execute_xpath_expression(xmlDocPtr doc, const xmlChar* xpathExpr, const xmlChar*
   xpathObj = xmlXPathEvalExpression(xpathExpr, xpathCtx);
   if (xpathObj == NULL) {
     fprintf(stderr, "Error: unable to evaluate xpath expression \"%s\"\n", xpathExpr);
-    xmlXPathFreeContext(xpathCtx); 
-    xmlFreeDoc(doc); 
+    xmlXPathFreeContext(xpathCtx);
+    xmlFreeDoc(doc);
     return -1;
   }
 
@@ -219,14 +226,14 @@ execute_xpath_expression(xmlDocPtr doc, const xmlChar* xpathExpr, const xmlChar*
 
   /* Cleanup */
   xmlXPathFreeObject(xpathObj);
-  xmlXPathFreeContext(xpathCtx); 
-  xmlFreeDoc(doc); 
-    
+  xmlXPathFreeContext(xpathCtx);
+  xmlFreeDoc(doc);
+
   return(0);
 }
 #endif
 
-int 
+int
 main(int argc, char **argv) {
   /* Parse command line and process file */
   char *filePath = NULL;
@@ -269,12 +276,12 @@ main(int argc, char **argv) {
       inputBufferSize += sbSize;
     }
   }
-    
-  /* Init libxml */     
+
+  /* Init libxml */
   xmlInitParser();
   LIBXML_TEST_VERSION
 
-  xmlDocPtr doc = load_xml(filePath, inputBuffer, inputBufferSize);
+    xmlDocPtr doc = load_xml(filePath, inputBuffer, inputBufferSize);
   if (doc == NULL) {
     return -1;
   }
