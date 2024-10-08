@@ -6,6 +6,12 @@ CXQ is based on libxml2 xpath example, and is tiny itself. Combined with libxml2
 
 ## Examples
 
+Pretty-print XML file (at least libxml2 considers this pretty):
+
+```
+cxq -f foo.xml
+```
+
 Lookup apn nodes from apns db:
 
 ```
