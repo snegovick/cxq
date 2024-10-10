@@ -28,6 +28,8 @@ usage(void) {
   fprintf(stderr, "\t-f\t\t\tXML file path\n");
 #if defined(LIBXML_XPATH_ENABLED) && defined(LIBXML_SAX1_ENABLED)
   fprintf(stderr, "\t-x\t\t\tXPath expression\n");
+  fprintf(stderr, "\t-n\t\t\tList of known namespaces in format <prefix1>=<href1> <prefix2>=<href2>\n");
+  fprintf(stderr, "\t\t\t\tExample: $ cxq -f <file> -n myns=\"http://schemas.my.site/myns\".\n");
 #else
   fprintf(stderr, "\t-x\t\t\tXPath expression support is not enabled in libxml2\n");
 #endif
