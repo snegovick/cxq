@@ -1,0 +1,6 @@
+<test>
+  <test-node id="1" tag="first" name="Test name 1 first"/>
+  <test-node id="1" tag="second" name="Test name 1 second"/>
+  <test-node id="2" tag="first" name="Test name 2 first"/>
+  <test-node id="2" tag="second" name="Test name 2 second"/>
+</test>

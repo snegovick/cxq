@@ -1,0 +1,4 @@
+<test xmlns:foo="http://foo.com/foo" xmlns:bar="http://bar.com/bar">
+  <test-node bar:id="1" foo:name="Test name"/>
+  <test-node bar:id="2" foo:name="Test name 2"/>
+</test>

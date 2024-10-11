@@ -9,17 +9,44 @@ CXQ is based on libxml2 xpath example, and is tiny itself. Combined with libxml2
 Pretty-print XML file (at least libxml2 considers this pretty):
 
 ```
-cxq -f foo.xml
+cxq -f test.xml
 ```
 
-Lookup apn nodes from apns db:
+Simple lookup by attribute value:
 
 ```
-cxq -f apns-full-conf.xml -x /apns/apn[@mcc="260"][@mnc="06"]
+cxq -f test.xml -x /test/test-node[@id="1"]
+<test-node id="1" tag="first" name="Test name 1 first"/>
+<test-node id="1" tag="second" name="Test name 1 second"/>
 ```
 
-Print values of attribute "user" from apns db:
+Lookup by two attributes:
 
 ```
-cxq -f apns-full-conf.xml -x /apns/apn[@mcc="260"][@mnc="06"]/@mcc
+cxq -f test.xml -x '/test/test-node[@id="1"][@tag="first"]'
+<test-node id="1" nodetag="first" name="Test name 1 first"/>
 ```
+
+Print attribute value:
+
+```
+cxq -f ./test.xml -x '/test/test-node[@id="1"][@tag="first"]'/@name
+Test name 1 first
+```
+
+XML files and XPath queries with namespaces are also supported.
+
+Find node by attribute value match:
+
+```
+$ cxq -f test-ns.xml -n "foo=http://foo.com/foo bar=http://bar.com/bar" -x '/test/test-node[@bar:id="1"]'
+<test-node id="1" name="Test name"/>
+```
+
+Get attribute value:
+
+```
+$ cxq -f test-ns.xml -n "foo=http://foo.com/foo bar=http://bar.com/bar" -x '/test/test-node[@bar:id="1"]/@foo:name'
+Test name
+```
+
