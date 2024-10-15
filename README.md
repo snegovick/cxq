@@ -4,18 +4,18 @@ XQ is an awesome tool for xml querrying in bash scripts, but it is huge (~7 MB) 
 
 CXQ is based on libxml2 xpath example, and is tiny itself. Combined with libxml2 the size of CXQ is about half of the size of XQ (depending on configuration of libxml2), most of which is occupied by the library.
 
-## Examples
+## XML processing examples
 
 Pretty-print XML file (at least libxml2 considers this pretty):
 
 ```
-cxq -f test.xml
+$ cxq -f test.xml
 ```
 
 Simple lookup by attribute value:
 
 ```
-cxq -f test.xml -x /test/test-node[@id="1"]
+$ cxq -f test.xml -x /test/test-node[@id="1"]
 <test-node id="1" tag="first" name="Test name 1 first"/>
 <test-node id="1" tag="second" name="Test name 1 second"/>
 ```
@@ -23,17 +23,18 @@ cxq -f test.xml -x /test/test-node[@id="1"]
 Lookup by two attributes:
 
 ```
-cxq -f test.xml -x '/test/test-node[@id="1"][@tag="first"]'
+$ cxq -f test.xml -x '/test/test-node[@id="1"][@tag="first"]'
 <test-node id="1" nodetag="first" name="Test name 1 first"/>
 ```
 
 Print attribute value:
 
 ```
-cxq -f ./test.xml -x '/test/test-node[@id="1"][@tag="first"]'/@name
+$ cxq -f ./test.xml -x '/test/test-node[@id="1"][@tag="first"]'/@name
 Test name 1 first
 ```
 
+## Processing XML with namespaces
 XML files and XPath queries with namespaces are also supported.
 
 Find node by attribute value match:
